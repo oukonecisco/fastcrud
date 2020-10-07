@@ -14,35 +14,67 @@ class BaseCrud:
 
         async def get(uid: str):
             """
-            Get an object by is unique id
+            Get an object by its unique id
             """
             return await run_async_or_sync(self._get, uid)
 
         async def get_many(field: str, value: str, opr: FilterOp = "eq"):
+            """
+            Get one or more objects by a comparison operator
+
+            See: :func:`fastcrud.storage.local.default_filter` docstring 
+            for more details
+            """
             return await run_async_or_sync(self._get_many, field, value, opr)
 
         async def create(obj: self.model):
+            """
+            Create an object, generating a unique id by default
+            """
             return await run_async_or_sync(self._create, obj)
 
         async def create_many(objs: typing.List[self.model]):
+            """
+            Bulk insert a list of objects, generating unique id's for all of 
+            them by default
+            """
             return await run_async_or_sync(self._create_many, objs)
 
         async def put(uid: str, obj: self.model):
+            """
+            Update an object by unique id
+            """
             return await run_async_or_sync(self._put, uid, obj)
 
         async def put_many(objs: typing.List[self.model]):
+            """
+            Update a list of objects
+            """
             return await run_async_or_sync(self._put_many, objs)
 
         async def patch(uid: str, obj: self.model):
+            """
+            Create or update an object, generating a unique id for new objects
+            """
             return await run_async_or_sync(self._patch, uid, obj)
 
         async def patch_many(objs: typing.List[self.model]):
+            """
+            Create or update many objects, creating unique id's if it is a new 
+            object
+            """
             return await run_async_or_sync(self._patch_many, objs)
 
         async def delete(uid: str):
+            """
+            Delete an object by unique id
+            """
             return await run_async_or_sync(self._delete, uid)
 
         async def delete_many(uids: typing.List[str]):
+            """
+            Delete many objects by list of unique id's
+            """
             return await run_async_or_sync(self._delete_many, uids)
 
         self.get = get
