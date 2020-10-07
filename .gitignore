@@ -7,7 +7,6 @@
 .mypy_cache/
 .coverage
 .eggs/
-.mypy_cache/
 .python-version
 coverage.xml
 lib/

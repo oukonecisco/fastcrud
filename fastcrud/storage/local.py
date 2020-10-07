@@ -96,26 +96,23 @@ class LocalStorage(BaseStorage):
     def db(self):
         if not hasattr(self, "_db"):
             raise Exception("DB not initialized.")
-        if self._db is None:
-            raise Exception("")
+        assert self._db, "DB not initialized."
         return self._db
 
     def validator(
-        self, obj: pydantic.BaseModel, model: pydantic.BaseModel = None
+        self, obj: BaseCrudModel, model: BaseCrudModel = None
     ):
-        if isinstance(obj, model):
-            return True
-        return False
+        return isinstance(obj, model)
 
     def serialize(
-        self, obj: pydantic.BaseModel, model: pydantic.BaseModel = None
+        self, obj: BaseCrudModel, model: BaseCrudModel = None
     ):
         if not self.validator(obj, model=model):
             raise Exception(f"{obj} is not serializable.")
         return obj.json().encode("utf-8")
 
     def deserialize(
-        self, obj: bytes, model: pydantic.BaseModel = None
+        self, obj: bytes, model: BaseCrudModel = None
     ) -> pydantic.BaseModel:
         return model(**json.loads(obj))
 
@@ -126,9 +123,9 @@ class LocalStorage(BaseStorage):
         return {"id": uid, "item": self.deserialize(obj, model=self.model)}
 
     def create(self, obj):
-        oid = str(obj.uid) or str(uuid.uuid1())
-        self.db.put(oid.encode("utf-8"), self.serialize(obj, model=self.model))
-        return {"id": oid, "item": obj}
+        uid = str(obj.uid) or str(uuid.uuid1())
+        self.db.put(uid.encode("utf-8"), self.serialize(obj, model=self.model))
+        return {"id": uid, "item": obj}
 
     def put(self, uid, obj):
         obj.uid = uid

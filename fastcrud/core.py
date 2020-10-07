@@ -1,5 +1,7 @@
+import uuid
 import typing
 import pydantic
+from datetime import datetime
 from fastapi import APIRouter
 from fastcrud.storage import BaseStorage
 from fastcrud.storage.local import LocalStorage
@@ -7,8 +9,14 @@ from fastcrud.utils import run_async_or_sync
 from fastcrud.types import FilterOp
 
 
+class BaseCrudModel(pydantic.BaseModel):
+    uid: pydantic.UUID1 = pydantic.Field(default_factory=uuid.uuid1)
+    created_on: datetime = pydantic.Field(default_factory=datetime.now)
+    modify_on: datetime = pydantic.Field(default_factory=datetime.now)
+
+
 class BaseCrud:
-    def __init__(self, model: pydantic.BaseModel, storage: BaseStorage):
+    def __init__(self, model: BaseCrudModel, storage: BaseStorage):
         self.model = model
         self.storage = storage
 
@@ -22,7 +30,7 @@ class BaseCrud:
             """
             Get one or more objects by a comparison operator
 
-            See: :func:`fastcrud.storage.local.default_filter` docstring 
+            See: :func:`fastcrud.storage.local.default_filter` docstring
             for more details
             """
             return await run_async_or_sync(self._get_many, field, value, opr)
@@ -35,7 +43,7 @@ class BaseCrud:
 
         async def create_many(objs: typing.List[self.model]):
             """
-            Bulk insert a list of objects, generating unique id's for all of 
+            Bulk insert a list of objects, generating unique id's for all of
             them by default
             """
             return await run_async_or_sync(self._create_many, objs)
@@ -60,7 +68,7 @@ class BaseCrud:
 
         async def patch_many(objs: typing.List[self.model]):
             """
-            Create or update many objects, creating unique id's if it is a new 
+            Create or update many objects, creating unique id's if it is a new
             object
             """
             return await run_async_or_sync(self._patch_many, objs)
@@ -125,7 +133,7 @@ class CRUDRouter(APIRouter):
         self,
         *args,
         crud_cls: BaseCrud = BaseCrud,
-        model: pydantic.BaseModel = None,
+        model: BaseCrudModel = None,
         storage_cls: BaseStorage = LocalStorage,
         storage_settings: typing.Dict = None,
         **kwargs,
