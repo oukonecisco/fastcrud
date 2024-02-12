@@ -1,0 +1,32 @@
+services:
+  demo-api:
+    build: .
+    image: fastcrud:main
+    ports:
+      - 9090:9090
+    volumes:
+      - ./fastcrud:/app/fastcrud
+      - ./demo:/app/demo
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+    environment:
+      LOG_LEVEL: DEBUG
+      ENVIRONMENT: "${ENVIRONMENT}"
+    command:
+      - sleep
+      - infinity
+
+  mongo:
+    image: mongo:6
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_INITDB_ROOT_USERNAME}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_INITDB_ROOT_PASSWORD}"
+      MONGO_INITDB_DATABASE: "${MONGO_INITDB_DATABASE}"
+    volumes:
+      - fastcrud_data:/data/db
+
+volumes:
+  fastcrud_data:

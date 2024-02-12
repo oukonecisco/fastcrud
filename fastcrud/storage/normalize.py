@@ -1,53 +1,33 @@
-import asyncio
-import typing
-import uuid
-from datetime import datetime, timezone
+# -*- coding: utf-8 -*-
+__author__ = "CX Catalog Team"
+__email__ = "cxcatalog-notifications@cisco.com"
+__copyright__ = """
+Copyright 2022, Cisco Systems, Inc.
+All Rights Reserved.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+"""  # noqa
+
+
+from datetime import datetime
 from typing import Any, Sequence
 
 import daiquiri
-import pydantic
+
+from cxc_item.settings import SETTINGS
+from cxc_item.utils.date import datetime_to_iso8601_with_z_suffix
 
 LOGGER = daiquiri.getLogger(__name__)
 FILTER_CONTAINS_OPERATORS = ["contains", "icontains"]
 FILTER_LIST_OPERATORS = ["in", "nin"]
 FILTER_RANGE_OPERATORS = ["gt", "gte", "lt", "lte"]
 MONGODB_LIST_OPERATORS = ["$in", "$nin"]
-
-
-async def run_async_or_sync(func: typing.Callable, *args, **kwargs):
-    if asyncio.iscoroutinefunction(func):
-        return await func(*args, **kwargs)
-    return func(*args, **kwargs)
-
-
-def create_in_db_model(model):
-    return pydantic.create_model(
-        f"{model.__name__}InDb",
-        id=(str, pydantic.Field(default_factory=uuid.uuid1, alias="_id")),
-        __base__=model,
-    )
-
-
-def create_update_model(model, exclude: list[str] | None = None):
-    return pydantic.create_model(
-        f"{model.__name__}Update",
-        __base__=create_in_db_model(model),
-        **{
-            field: (model.model_fields[field].annotation, None)
-            for field in model.model_fields
-            if field not in (exclude or ["_id", "created", "updated"])
-        },
-    )
-
-
-def datetime_to_iso8601_with_z_suffix(value: datetime) -> str:
-    """Convert datetime to ISO 8601 with Z suffix"""
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    formatted_datetime: str = value.isoformat()
-    if formatted_datetime.endswith("+00:00"):
-        formatted_datetime = formatted_datetime[:-6] + "Z"
-    return formatted_datetime
 
 
 def build_parameter(parameter: str, operator: str | None, value: Any) -> dict:
@@ -67,6 +47,11 @@ def build_parameter(parameter: str, operator: str | None, value: Any) -> dict:
     else:
         match_stages_dict = {parameter: normalize_value(value, operator)}
     return match_stages_dict
+
+
+def normalize_collection_from_rabbitmq(collection: str) -> str:
+    """Normalize collection from rabbitmq."""
+    return collection.replace("__", ".")
 
 
 def normalize_parameter(parameter: str) -> tuple[str, str | None]:
@@ -114,3 +99,23 @@ def normalize_mongodb_list_operators(
         if "," in value:
             return value.split(",")
     return [value]
+
+
+def normalize_collection_name_to_api(
+    field_name: str, collection_name: str
+) -> str:
+    """Normalize collection name to API."""
+
+    normalized_collection_name = (
+        collection_name[:-1]
+        if collection_name.endswith("s")
+        else collection_name
+    )
+
+    normalized_field_name = SETTINGS.metadata_api_names.get(
+        field_name, field_name[:-1] if field_name.endswith("s") else field_name
+    )
+
+    if field_name not in SETTINGS.metadata_common_fields:
+        return f"{normalized_collection_name}/{normalized_field_name}"
+    return normalized_field_name
